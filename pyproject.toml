@@ -1,0 +1,7 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# Explicito para que local y CI apliquen las mismas reglas sin depender de la version
+# de ruff ni de configuraciones de usuario.
+select = ["E4", "E7", "E9", "F", "I", "UP", "SIM", "PLW1510", "PLR1704"]

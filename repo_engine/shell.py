@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
-
 import tomllib
+from datetime import UTC, datetime
+from pathlib import Path
 
 from . import audit
 from .templates import all_templates
@@ -173,8 +172,8 @@ def render_dashboard(repo: Path, marker: dict, template: dict) -> str:
         artifact_items=artifact_items,
         check_items=check_items,
         repo_name=repo.name,
-        last_scan=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
-        timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        last_scan=datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+        timestamp=datetime.now(UTC).isoformat(timespec="seconds"),
         crit_count=crit_count,
         warn_count=warn_count,
         info_count=info_count,
