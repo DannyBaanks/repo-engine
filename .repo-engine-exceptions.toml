@@ -1,0 +1,18 @@
+# Excepciones revisadas a mano.
+# repo_engine/policy.py contiene las rutas privadas como FIRMAS de deteccion: no son una fuga,
+# son lo que la regla LOCAL_PATH_001 busca. Este archivo las repite para poder declararlas.
+[exceptions]
+detection_signatures = [
+  'repo_engine/policy.py:c:\development\isyco',
+  'repo_engine/policy.py:c:/development/isyco',
+  'repo_engine/policy.py:/home/danny/development/isyco',
+  '.repo-engine-exceptions.toml:c:\development\isyco',
+  '.repo-engine-exceptions.toml:c:/development/isyco',
+  '.repo-engine-exceptions.toml:/home/danny/development/isyco',
+]
+
+# El ejemplo de la documentacion es un valor sintetico declarado.
+[[secret_fixture]]
+rule = "SECRET_002"
+path = "README.md"
+value = "sk-test-only-fixture-0000"

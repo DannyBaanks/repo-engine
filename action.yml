@@ -1,0 +1,24 @@
+name: Repo Engine
+description: Publication gate on the commits a pull request adds (secrets, private paths, credential files).
+inputs:
+  base:
+    description: Base commit (pull_request.base.sha, or the previous tip on push)
+    required: true
+  head:
+    description: Head commit (pull_request.head.sha, or github.sha on push)
+    required: true
+  policy:
+    description: >
+      Optional private policy contents (from an Actions secret). Leave empty on public
+      repositories: policy findings name the term and CI logs are public.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - shell: sh
+      env:
+        RE_POLICY: ${{ inputs.policy }}
+        RE_BASE: ${{ inputs.base }}
+        RE_HEAD: ${{ inputs.head }}
+      run: '"$GITHUB_ACTION_PATH/ci/run-ci.sh" "$RE_BASE" "$RE_HEAD"'

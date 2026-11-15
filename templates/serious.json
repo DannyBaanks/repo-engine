@@ -1,0 +1,9 @@
+{
+  "id": "serious",
+  "label": "Serious product",
+  "purpose": "A durable open-source or commercial-ready project.",
+  "visual_language": "technical brief",
+  "required_artifacts": ["README.md", "LICENSE", ".github/workflows"],
+  "recommended_artifacts": ["architecture note", "quickstart", "contributing guide"],
+  "release_checks": ["tests", "lint", "links", "public boundary"]
+}

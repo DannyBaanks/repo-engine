@@ -1,0 +1,9 @@
+{
+  "id": "research-demo",
+  "label": "Research demo",
+  "purpose": "A reproducible technical demonstration with explicit evidence.",
+  "visual_language": "lab notebook",
+  "required_artifacts": ["README.md", "methodology", "fixtures", "evidence"],
+  "recommended_artifacts": ["benchmark command", "limitations", "integrity report"],
+  "release_checks": ["tests", "reproducibility", "claims/evidence", "public boundary"]
+}

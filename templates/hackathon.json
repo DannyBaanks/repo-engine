@@ -1,0 +1,9 @@
+{
+  "id": "hackathon",
+  "label": "Hackathon submission",
+  "purpose": "A judge-ready public submission with a fast comprehension path.",
+  "visual_language": "evidence dashboard",
+  "required_artifacts": ["README.md", "demo", "evidence", ".github/workflows"],
+  "recommended_artifacts": ["30-second judge brief", "screenshot", "reproduction command"],
+  "release_checks": ["tests", "lint", "links", "claims/evidence", "public boundary"]
+}
