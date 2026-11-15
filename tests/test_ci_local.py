@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RUN_CI = ROOT / "ci" / "run-ci.sh"
 SK_REAL = "s" + "k-" + "Zq8Lr2Wn5Vb7Kc1Xd4Mf6Hj9"
 SK_FAKE = "s" + "k-" + "test-only-fixture-0000000"
-PRIVATE = "/home/danny/" + "Development/ISyCo/x"
+PRIVATE = "/home" + "/alice/projects/x"
 
 
 @pytest.fixture
@@ -107,3 +107,11 @@ def test_ci_blocks_a_real_secret_written_into_the_exceptions_file(pr) -> None:
     r = ci(commit(".repo-engine-exceptions.toml",
                   f'[[secret_fixture]]\nrule = "SECRET_002"\npath = "tests/t.py"\nvalue = "{SK_REAL}"\n'))
     assert r.returncode == 1 and "SECRET_002" in r.stdout
+
+
+def test_ci_extra_private_paths_input(pr) -> None:
+    commit, ci, _ = pr
+    head = commit("tool.py", 'P = "D:/work/' + 'client-x/secret"\n')
+    assert ci(head).returncode == 0
+    r = ci(head, RE_PRIVATE_PATHS="D:/work/client-x\n")
+    assert r.returncode == 1 and "LOCAL_PATH_001" in r.stdout and "client-x" not in r.stdout

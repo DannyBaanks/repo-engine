@@ -17,14 +17,15 @@ lo exige antes de integrar a la rama por defecto.
 
 ## Política privada en CI: por defecto NO
 
-Los hallazgos de la política (`ISYCO_NAME`, `ISYCO_PHRASE`, `ISYCO_CONCEPT`) imprimen el
+Los hallazgos de la política (`POLICY_NAME`, `POLICY_PHRASE`, `POLICY_CONCEPT`) imprimen el
 término, y en un repo público los logs de Actions son públicos: el CI publicaría
 justo la lista de "no publicar". Por eso el CI corre con las **reglas base**: secretos,
-rutas privadas y archivos de credenciales. La salida lo dice (`policy: base-rules-only`).
+carpetas personales (de cualquier usuario) y archivos de credenciales; rutas extra con el
+input `private-paths`. La salida lo dice (`policy: base-rules-only`).
 Los términos privados siguen cubiertos por los hooks locales. `inputs.policy` existe
 para repos privados, desde un secreto de Actions, si algún día se decide.
 
-## Requisitos sin resolver (decisión de Danny)
+## Decisiones pendientes del dueño del repo
 
 1. **Dónde vive la acción:** este repo (`DannyBaanks/repo-engine`), fijado por SHA.
 2. **Rulesets en repos privados.** En una cuenta personal gratuita, los rulesets y la

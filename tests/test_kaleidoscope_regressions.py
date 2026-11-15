@@ -33,7 +33,7 @@ def test_candidate_scan_covers_untracked_without_staging(
     run_git(tmp_path, "init")
     (tmp_path / "clean.txt").write_text("public material\n", encoding="utf-8")
     (tmp_path / "trace.py").write_text(
-        'ROOT = r"C:\\Development\\ISyCo\\private"\n', encoding="utf-8"
+        'ROOT = r"C:\\' + 'Users\\alice\\private"\n', encoding="utf-8"
     )
 
     outcome = audit.candidate_outcome(tmp_path)

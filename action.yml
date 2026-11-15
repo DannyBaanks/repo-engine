@@ -1,5 +1,8 @@
 name: Repo Engine
-description: Publication gate on the commits a pull request adds (secrets, private paths, credential files).
+description: Publication gate for the commits a pull request adds — credentials, personal paths, credential files and private terms.
+branding:
+  icon: shield
+  color: purple
 inputs:
   base:
     description: Base commit (pull_request.base.sha, or the previous tip on push)
@@ -13,12 +16,19 @@ inputs:
       repositories: policy findings name the term and CI logs are public.
     required: false
     default: ""
+  private-paths:
+    description: >
+      Optional extra private paths, one per line (personal home folders are always
+      detected). Pass them from a secret if they should not appear in the workflow.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
     - shell: sh
       env:
         RE_POLICY: ${{ inputs.policy }}
+        RE_PRIVATE_PATHS: ${{ inputs.private-paths }}
         RE_BASE: ${{ inputs.base }}
         RE_HEAD: ${{ inputs.head }}
       run: '"$GITHUB_ACTION_PATH/ci/run-ci.sh" "$RE_BASE" "$RE_HEAD"'

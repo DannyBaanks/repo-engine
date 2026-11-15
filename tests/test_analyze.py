@@ -40,7 +40,7 @@ def test_scan_detects_unique_name(tmp_path: Path) -> None:
         "internal concept patterns": [],
     }
     findings = scan_file(f, sections, set())
-    assert any(f.rule == "ISYCO_NAME" for f in findings)
+    assert any(f.rule == "POLICY_NAME" for f in findings)
 
 
 def test_scan_ignores_generic_word(tmp_path: Path) -> None:
@@ -64,7 +64,7 @@ def test_scan_detects_phrase(tmp_path: Path) -> None:
         "internal concept patterns": [],
     }
     findings = scan_file(f, sections, set())
-    assert any(f.rule == "ISYCO_PHRASE" for f in findings)
+    assert any(f.rule == "POLICY_PHRASE" for f in findings)
 
 
 def test_scan_concept_requires_context(tmp_path: Path) -> None:
@@ -76,7 +76,7 @@ def test_scan_concept_requires_context(tmp_path: Path) -> None:
         "internal concept patterns": ["ExampleTerm3"],
     }
     findings = scan_file(f, sections, set())
-    assert any(f.rule == "ISYCO_CONCEPT" for f in findings)
+    assert any(f.rule == "POLICY_CONCEPT" for f in findings)
 
 
 def test_scan_concept_without_context(tmp_path: Path) -> None:

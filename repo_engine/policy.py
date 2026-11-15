@@ -5,6 +5,8 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import config as _config
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -22,9 +24,9 @@ SEVERITY = {
     "LOCAL_PATH_001": "critical",
     "LOCAL_PATH_001_ENVVAR": "warning",
     "LOCAL_PATH_001_DOC": "info",
-    "ISYCO_NAME": "warning",
-    "ISYCO_PHRASE": "warning",
-    "ISYCO_CONCEPT": "info",
+    "POLICY_NAME": "warning",
+    "POLICY_PHRASE": "warning",
+    "POLICY_CONCEPT": "info",
 }
 
 
@@ -44,14 +46,52 @@ SECRET_PATTERNS = (
     ("SECRET_002", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b")),
     ("SECRET_003", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
 )
-# Minusculas: se comparan contra line.lower(). Windows (historico) + Linux (desde 2026-09).
-PRIVATE_PATHS = ("c:\\development\\isyco", "c:/development/isyco", "/home/danny/development/isyco")
+# Rutas privadas, sin nada especifico de nadie en el codigo:
+# 1) cualquier carpeta personal: /home/<usuario>, /Users/<usuario>, C:\Users\<usuario>
+#    (salvo nombres de ejemplo), y
+# 2) las rutas extra de la config local ("private_paths" en repo-engine.json).
+# Todo se compara en minusculas.
+_HOME_RE = re.compile(
+    r"(?:(?<![a-z0-9._~-])/home/|(?<![a-z0-9._~-])/users/|(?<![a-z0-9])[a-z]:[\\/]+users[\\/]+)"
+    r"(?P<user>[a-z0-9][a-z0-9._-]*)"
+)
+PLACEHOLDER_USERS = frozenset({
+    "user", "username", "usuario", "you", "your", "yourname", "your-name", "your_name",
+    "me", "name", "example", "runner", "ubuntu", "vscode", "node", "app", "admin",
+    "default", "public", "shared", "guest", "test", "tester", "foo", "bar", "someone",
+    "john", "jane", "johndoe", "dev", "developer", "linuxbrew", "all users",
+})
+
+
+def _configured(key: str) -> list[str]:
+    values = _config.config().get(key, [])
+    return [v.lower() for v in values if isinstance(v, str) and v.strip()]
+
+
+def private_path_terms(text_lower: str) -> list[str]:
+    """Private paths present in an already-lowercased text, as exception terms."""
+    terms = [p for p in _configured("private_paths") if p in text_lower]
+    for m in _HOME_RE.finditer(text_lower):
+        if m.group("user") in PLACEHOLDER_USERS:
+            continue
+        if m.group(0) not in terms:
+            terms.append(m.group(0))
+    return terms
+
+
 FORBIDDEN_NAMES = (".env", "id_rsa", "id_ed25519")
 FORBIDDEN_SUFFIXES = (".pem", ".key", ".p12", ".pfx")
 
-ENGINE_CONTEXT = re.compile(
-    r"(?i)\b(?:engine|isyco|isomorphic|orchestrat|pipeline|capability|substrate)\b"
-)
+# Un concepto de la politica solo cuenta si el texto habla de implementacion. Palabras
+# genericas; cada quien agrega las suyas con "concept_context" en la config local o con
+# una seccion "## Concept context words" en su politica.
+DEFAULT_CONCEPT_CONTEXT = ("engine", "orchestrat", "pipeline", "capability")
+
+
+def _concept_context(sections: dict[str, list[str]]) -> re.Pattern:
+    words = [*DEFAULT_CONCEPT_CONTEXT, *_configured("concept_context"),
+             *(w.lower() for w in sections.get("concept context words", []))]
+    return re.compile(r"(?i)\b(?:" + "|".join(re.escape(w) for w in words) + r")\b")
 
 _LOCAL_PATH_ENVVAR = re.compile(
     r"os\.environ\.(?:get|__getitem__)\s*\(\s*[\"']", re.IGNORECASE
@@ -59,7 +99,7 @@ _LOCAL_PATH_ENVVAR = re.compile(
 _LOCAL_PATH_DOC_EXTS = {".md", ".rst", ".txt"}
 
 
-def _classify_local_path(text: str, path: str) -> tuple[str, str]:
+def _classify_local_path(text: str, path: str, term: str) -> tuple[str, str]:
     """Classify a LOCAL_PATH_001 finding by context.
 
     Returns (rule, severity):
@@ -74,7 +114,7 @@ def _classify_local_path(text: str, path: str) -> tuple[str, str]:
     lines = text.splitlines()
     classes = set()
     for i, line in enumerate(lines):
-        if not any(p in line.lower() for p in PRIVATE_PATHS):
+        if term not in line.lower():
             continue
         ctx = "\n".join(lines[max(0, i - 2) : i + 3])  # esta linea y ±2 (llamadas multilinea)
         if _LOCAL_PATH_ENVVAR.search(ctx):
@@ -195,13 +235,11 @@ def scan(
 
     text = blob.decode("utf-8", "replace")
     lower = text.lower()
-    for local_path in PRIVATE_PATHS:
-        if local_path in lower:
-            rule, sev = _classify_local_path(text, path)
-            if (path, local_path) not in exceptions:
-                findings.append(
-                    Finding(rule, path, "private workstation path", sev)
-                )
+    # El detalle nunca incluye la ruta: en CI de un repo publico el log es publico.
+    for local_path in private_path_terms(lower):
+        if (path, local_path) not in exceptions:
+            rule, sev = _classify_local_path(text, path, local_path)
+            findings.append(Finding(rule, path, "private workstation path", sev))
     for rule, pattern in SECRET_PATTERNS:
         for match in pattern.finditer(text):
             verdict = _fixture_verdict(rule, path, text, match, exceptions)
@@ -217,10 +255,10 @@ def scan(
         if term.lower() in lower and (path, term) not in exceptions:
             findings.append(
                 Finding(
-                    "ISYCO_NAME",
+                    "POLICY_NAME",
                     path,
-                    f"unique ISyCo name: {term}",
-                    SEVERITY["ISYCO_NAME"],
+                    f"private policy name: {term}",
+                    SEVERITY["POLICY_NAME"],
                 )
             )
 
@@ -228,25 +266,28 @@ def scan(
         if phrase.lower() in lower and (path, phrase) not in exceptions:
             findings.append(
                 Finding(
-                    "ISYCO_PHRASE",
+                    "POLICY_PHRASE",
                     path,
-                    f"internal phrase: {phrase}",
-                    SEVERITY["ISYCO_PHRASE"],
+                    f"private policy phrase: {phrase}",
+                    SEVERITY["POLICY_PHRASE"],
                 )
             )
 
-    for concept in sections.get("internal concept patterns", []):
+    concepts = sections.get("internal concept patterns", [])
+    context = _concept_context(sections) if concepts else None
+    for concept in concepts:
         if (
             concept.lower() in lower
             and (path, concept) not in exceptions
-            and ENGINE_CONTEXT.search(text)
+            and context is not None
+            and context.search(text)
         ):
             findings.append(
                 Finding(
-                    "ISYCO_CONCEPT",
+                    "POLICY_CONCEPT",
                     path,
-                    f"internal concept: {concept}",
-                    SEVERITY["ISYCO_CONCEPT"],
+                    f"private policy concept: {concept}",
+                    SEVERITY["POLICY_CONCEPT"],
                 )
             )
 

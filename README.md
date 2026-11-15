@@ -14,7 +14,7 @@ declaraste como "no publicar". También corre en CI sobre lo que agrega cada pul
 | `SECRET_001/002/003` | tokens de GitHub, claves `sk-…`, claves privadas PEM | sí |
 | `FILE_001` | `.env`, `id_rsa`, `*.pem`, `*.key` … | sí |
 | `LOCAL_PATH_001` | ruta privada escrita en código | sí |
-| `ISYCO_NAME` / `ISYCO_PHRASE` / `ISYCO_CONCEPT` | términos de tu política privada | sí ("STOP and request human review") |
+| `POLICY_NAME` / `POLICY_PHRASE` / `POLICY_CONCEPT` | términos de tu política privada | sí ("STOP and request human review") |
 | `LOCAL_PATH_001_DOC` | ruta privada en documentación | no: nota |
 | `LOCAL_PATH_001_ENVVAR` | ruta como valor por defecto de una variable de entorno | no: nota |
 
@@ -33,10 +33,26 @@ python3 repo-engine.py audit --repo . --range BASE..HEAD --policy optional
 `pre-push` audita exactamente las refs que se empujan (no `HEAD`) y considera publicado
 solo lo que ya está en el remoto destino.
 
+## Rutas privadas
+
+Se detecta cualquier carpeta personal: `/home/<usuario>`, `/Users/<usuario>`,
+`C:\Users\<usuario>` (salvo nombres de ejemplo como `user` o `runner`, y URLs). Para
+rutas que no viven en tu home (un disco de trabajo, la carpeta de un cliente), agrégalas a
+la config local:
+
+```json
+{ "policy_path": "/ruta/a/politica.md", "private_paths": ["D:/clientes/acme"] }
+```
+
+El hallazgo nunca imprime la ruta (los logs de CI de un repo público son públicos).
+
 ## Política privada
 
 Un Markdown fuera de cualquier repo, con secciones `## Unique internal names`,
 `## Internal phrases` e `## Internal concept patterns` (una entrada `- término` por línea).
+Un concepto solo cuenta si el texto habla de implementación (`engine`, `pipeline`,
+`capability`, `orchestrat…`); amplía esas palabras con `## Concept context words` en la
+política o `"concept_context": [...]` en la config.
 Nunca se publica: los hallazgos nombran el término, así que **el CI corre sin ella** por
 defecto y la salida lo dice (`policy: base-rules-only`).
 

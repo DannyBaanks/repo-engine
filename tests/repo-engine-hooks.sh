@@ -24,7 +24,7 @@ obs() { OBS+=("$1"); printf '  OBS   %s\n' "$1"; }   # comportamiento medido, si
 # Token falso con forma de PAT de GitHub (SECRET_001); se arma en partes para que
 # este archivo no sea el mismo un hallazgo.
 FAKE_TOKEN="gh""p_""$(printf 'A%.0s' {1..36})"
-PRIV_PATH="/home/danny/""Development/ISyCo/private"
+PRIV_PATH="/home""/alice/private"
 
 # mkrepo NAME [writer]: repo + remoto bare, hooks instalados por el instalador OFICIAL
 mkrepo() {

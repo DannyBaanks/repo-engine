@@ -16,7 +16,7 @@ from repo_engine import audit
 from repo_engine.policy import is_blocking, is_synthetic_secret, load_exceptions, scan
 
 # Armado en partes: este archivo no debe ser el mismo un hallazgo.
-PRIV = b"/home/danny/" + b"Development/ISyCo/x"
+PRIV = b"/home" + b"/alice/projects/x"
 GH = "gh" + "p_"
 SK = "s" + "k-"
 REALISH_GH = GH + "Zq8Lr2Wn5Vb7Kc1Xd4Mf6Hj9Pt3Ys0Ue8Ra"  # 36, alta entropia, sin marcador
@@ -73,9 +73,9 @@ def test_private_credential_filename_still_blocks() -> None:
 
 
 @pytest.mark.parametrize("text,rule", [
-    ("we ship NeverPublishThis", "ISYCO_NAME"),
-    ("this is our secret sauce phrase", "ISYCO_PHRASE"),
-    ("the hyperloom engine core", "ISYCO_CONCEPT"),
+    ("we ship NeverPublishThis", "POLICY_NAME"),
+    ("this is our secret sauce phrase", "POLICY_PHRASE"),
+    ("the hyperloom engine core", "POLICY_CONCEPT"),
 ])
 def test_private_policy_rules_stay_blocking_stop_and_review(text: str, rule: str) -> None:
     # La politica privada dice "STOP and request human review": no se rebajan.
@@ -165,7 +165,7 @@ def test_term_exceptions_keep_working(tmp_path: Path) -> None:
     write_exc(tmp_path, '[exceptions]\nnames = ["docs/a.md:NeverPublishThis"]\n')
     exc = load_exceptions(tmp_path)
     assert scan("docs/a.md", b"NeverPublishThis", SECTIONS, exc) == []
-    assert rules(scan("docs/b.md", b"NeverPublishThis", SECTIONS, exc)) == ["ISYCO_NAME"]
+    assert rules(scan("docs/b.md", b"NeverPublishThis", SECTIONS, exc)) == ["POLICY_NAME"]
 
 
 # ── rango para CI ──────────────────────────────────────────────────────────────
@@ -208,3 +208,49 @@ def test_range_rejects_non_range_arguments(pr_repo: tuple[Path, str]) -> None:
     r, _ = pr_repo
     with pytest.raises(Exception, match="BASE..HEAD"):
         audit.git.range_commits(r, "--all")
+
+
+# ── rutas privadas genericas ──────────────────────────────────────────────────
+
+@pytest.mark.parametrize("blob", [
+    b"/Us" + b"ers/carol/secret.txt",
+    b"C:" + b"\\Users\\Bob\\x",
+    b"C:" + b"/Us" + b"ers/bob/x",
+])
+def test_any_personal_home_is_a_private_path(blob: bytes) -> None:
+    f = scan("tool.py", b'P = "' + blob + b'"', {}, set())
+    assert rules(f) == ["LOCAL_PATH_001"]
+
+
+@pytest.mark.parametrize("text", [
+    b"see /home/user/project",            # nombre de ejemplo
+    b"cd /home/runner/work/x",            # runner de CI
+    b"https://api.github.com/users/octocat",   # URL, no una ruta local
+    b"https://example.com/home/alice",    # URL con /home/ en el camino
+])
+def test_examples_and_urls_are_not_private_paths(text: bytes) -> None:
+    assert scan("tool.py", text, {}, set()) == []
+
+
+def test_configured_private_paths_extend_detection(monkeypatch: pytest.MonkeyPatch) -> None:
+    from repo_engine import config
+    blob = b'P = "D:/work/' + b'client-x/secret"'
+    assert scan("tool.py", blob, {}, set()) == []
+    monkeypatch.setattr(config, "config", lambda: {"private_paths": ["D:/work/client-x"]})
+    assert rules(scan("tool.py", blob, {}, set())) == ["LOCAL_PATH_001"]
+
+
+def test_concept_context_words_are_configurable(monkeypatch: pytest.MonkeyPatch) -> None:
+    from repo_engine import config
+    sections = {"internal concept patterns": ["hyperloom"]}
+    assert scan("a.md", b"the hyperloom substrate", sections, set()) == []
+    monkeypatch.setattr(config, "config", lambda: {"concept_context": ["substrate"]})
+    assert rules(scan("a.md", b"the hyperloom substrate", sections, set())) == ["POLICY_CONCEPT"]
+    via_policy = {**sections, "concept context words": ["loom-core"]}
+    monkeypatch.setattr(config, "config", lambda: {})
+    assert rules(scan("a.md", b"hyperloom in loom-core", via_policy, set())) == ["POLICY_CONCEPT"]
+
+
+def test_path_finding_never_prints_the_path() -> None:
+    f = scan("tool.py", b'P = "' + PRIV + b'"', {}, set())
+    assert f and all(b"alice" not in x.detail.encode() for x in f)

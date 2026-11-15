@@ -3,8 +3,8 @@ from repo_engine.templates import marker
 
 # Armados por partes: el propio repo de la compuerta no debe contener rutas privadas
 # ni tokens con forma real como literales.
-WIN_PRIVATE = b"C:\\" + b"Development\\ISyCo\\private"
-LINUX_PRIVATE = b"/home/danny/" + b"Development/ISyCo/private"
+WIN_PRIVATE = b"C:\\" + b"Users\\alice\\private"
+LINUX_PRIVATE = b"/home" + b"/alice/private"
 GH_TOKEN_SHAPE = b"gh" + b"p_abcdefghijklmnopqrstuvwxyz123456"
 
 SECTIONS = {
@@ -14,14 +14,14 @@ SECTIONS = {
 }
 
 
-def test_scans_unique_isyco_name() -> None:
+def test_scans_unique_policy_name() -> None:
     findings = scan(
         "README.md",
         b"This exposes Example Private Name.",
         SECTIONS,
         set(),
     )
-    assert findings[0].rule == "ISYCO_NAME"
+    assert findings[0].rule == "POLICY_NAME"
 
 
 def test_scans_private_workstation_paths() -> None:
